@@ -46,11 +46,14 @@
 
 <script>
     // Ожидание полной загрузки face-api.js
-    window.onload = function () {
+    window.onload = async function () {
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const dateDisplay = document.getElementById('date-display');
         const ctx = canvas.getContext('2d');
+
+        // Загрузка модели TinyYolov2
+        await faceapi.nets.tinyYolov2.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js/models');
 
         // Запуск камеры
         navigator.mediaDevices.getUserMedia({ video: true })
