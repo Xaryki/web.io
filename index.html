@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera App with Mask Overlay</title>
+    <style>
+        #video-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        #video {
+            width: 100%;
+            height: auto;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #date-display {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 18px;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+<div id="video-container">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+    <div id="date-display"></div>
+</div>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+    // Ожидание полной загрузки face-api.js
+    window.onload = function () {
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const dateDisplay = document.getElementById('date-display');
+        const ctx = canvas.getContext('2d');
+
+        // Запуск камеры
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                video.srcObject = stream;
+
+                // Обновление даты
+                function updateDate() {
+                    const currentDate = new Date();
+                    const dateString = currentDate.toLocaleString();
+                    dateDisplay.innerHTML = dateString;
+                }
+
+                // Обработка каждого кадра
+                video.addEventListener('play', () => {
+                    const displaySize = { width: video.width, height: video.height };
+                    faceapi.matchDimensions(canvas, displaySize);
+
+                    // Загрузка изображения маски
+                    const maskImage = new Image();
+                    maskImage.src = 'cats.png';  // Замените на фактический путь
+
+                    // Ожидание загрузки изображения маски
+                    maskImage.onload = function () {
+                        setInterval(async () => {
+                            updateDate();  // Обновляем дату
+
+                            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                                .withFaceLandmarks().withFaceDescriptors();
+                            const resizedDetections = faceapi.resizeResults(detections, displaySize);
+
+                            // Очищение canvas
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                            // Рисование лиц и маски
+                            resizedDetections.forEach((detection) => {
+                                const { x, y, width, height } = detection.detection.box;
+
+                                // Рисование прямоугольника вокруг лица
+                                ctx.strokeStyle = 'green';
+                                ctx.lineWidth = 2;
+                                ctx.strokeRect(x, y, width, height);
+
+                                // Рисование маски
+                                ctx.drawImage(maskImage, x, y, width, height);
+                            });
+                        }, 100);
+                    };
+                });
+            })
+            .catch((error) => {
+                console.error('Error accessing camera:', error);
+            });
+    };
+</script>
+
+</body>
+</html>
